@@ -913,51 +913,5 @@
         
         cargarConfig();
     </script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
-
-<script>
-  // Configuración extraída de tu captura de pantalla
-  const firebaseConfig = {
-    apiKey: "AIzaSyB0Nv_MJeXvdU2xAcZcnQdSqTju6MSRM8w",
-    authDomain: "recargasvenezuela-eb5ca.firebaseapp.com",
-    projectId: "recargasvenezuela-eb5ca",
-    storageBucket: "recargasvenezuela-eb5ca.firebasestorage.app",
-    messagingSenderId: "318551389820",
-    appId: "1:318551389820:web:f0b706909b4e98dd56bbf9",
-    measurementId: "G-KBZM1E3KRW"
-  };
-
-  // Inicialización
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-
-  // Función para guardar pedidos en la NUBE (Firebase)
-  function guardarPedidoCloud(pedido) {
-      // Añadimos una marca de tiempo para el orden
-      pedido.fechaCreacion = firebase.firestore.FieldValue.serverTimestamp();
-      
-      db.collection("pedidos").add(pedido)
-      .then(() => {
-          showToast("Pedido sincronizado en todos tus dispositivos ✅");
-      })
-      .catch((error) => {
-          console.error("Error al sincronizar:", error);
-          showToast("Error de conexión", "error");
-      });
-  }
-
-  // Escuchar cambios en tiempo real
-  db.collection("pedidos").orderBy("fechaCreacion", "desc")
-    .onSnapshot((snapshot) => {
-        const nuevosPedidos = [];
-        snapshot.forEach((doc) => {
-            nuevosPedidos.push({ idFirebase: doc.id, ...doc.data() });
-        });
-        // Actualizamos la lista local y la interfaz
-        pedidos = nuevosPedidos;
-        renderPedidosAdmin(); 
-        updateTotalCounter();
-    });
 </body>
 </html>
