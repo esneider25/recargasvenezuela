@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Shark Admin Pro | v28.4 Anti-Fraude</title>
+    
+    <link rel="icon" type="image/png" href="https://i.postimg.cc/4HhYjWRc/shark-sin-fondo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+    <style>
+        :root {
+            --brand: #00A3FF;
+            --accent: #FF6600;
+            --dark: #05070a;
+            --card: rgba(20, 25, 35, 0.95);
+            --success: #00ff88;
+            --danger: #ff4444;
+            --warning: #ffcc00;
+        }
+
+        body { background: var(--dark); color: #fff; font-family: 'Rajdhani', sans-serif; margin: 0; padding-bottom: 40px; }
+
+        header { background: rgba(0, 163, 255, 0.1); border-bottom: 1px solid var(--brand); padding: 15px; text-align: center; position: sticky; top: 0; z-index: 100; backdrop-filter: blur(10px); display: flex; justify-content: space-between; align-items: center; }
+        header h1 { font-family: 'Orbitron'; font-size: 16px; margin: 0; color: var(--brand); letter-spacing: 2px; }
+        .btn-toggle-view { background: rgba(0,163,255,0.2); border: 1px solid var(--brand); color: #fff; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: 0.3s; }
+        .btn-toggle-view:hover { background: var(--brand); color: #000; }
+
+        .dashboard { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 15px; }
+        .stat-card { background: var(--card); border: 1px solid rgba(255,255,255,0.05); padding: 12px; border-radius: 12px; text-align: left; position: relative; overflow: hidden; }
+        .stat-card.full { grid-column: span 2; border-left: 3px solid var(--success); }
+        .stat-card small { color: #8b9bb4; font-size: 10px; text-transform: uppercase; font-weight: 700; display: block; }
+        .stat-card div { font-family: 'Orbitron'; font-size: 16px; margin-top: 4px; }
+        
+        .calc-inputs { display: flex; gap: 5px; margin-top: 8px; }
+        .calc-inputs input { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--brand); background: rgba(0,0,0,0.5); color: #fff; font-family: 'Orbitron'; font-size: 14px; outline: none; text-align: center; }
+        
+        .ranking-list { margin-top: 8px; font-size: 12px; color: #ccc; }
+        .ranking-list div { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 2px; }
+
+        .search-bar { padding: 0 15px 15px; display: flex; flex-direction: column; gap: 10px; }
+        .search-bar input, .search-bar select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #fff; outline: none; font-family: 'Rajdhani'; }
+        .filter-row { display: flex; gap: 10px; }
+        
+        .btn-limpiar { background: rgba(255,68,68,0.1); border: 1px solid var(--danger); color: var(--danger); padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer; flex: 1; font-size: 12px; transition: 0.3s; }
+        .btn-limpiar:hover { background: var(--danger); color: #fff; }
+
+        .section-title { padding: 0 15px; font-size: 13px; font-weight: 700; color: var(--brand); margin: 5px 0 10px; display: flex; align-items: center; gap: 8px; text-transform: uppercase; }
+
+        .order-card { background: var(--card); margin: 0 15px 12px; border-radius: 15px; border-left: 4px solid var(--brand); padding: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); transition: 0.3s; }
+        .order-card.Completado { border-left-color: var(--success); opacity: 0.8; }
+        .order-card.Rechazado { border-left-color: var(--danger); opacity: 0.6; }
+        .ticket-id { font-family: 'Orbitron'; font-size: 13px; color: var(--brand); display: flex; align-items: center; gap: 8px; }
+        .order-info b { display: block; font-size: 16px; margin: 5px 0 2px; }
+        
+        .order-user-id { background: rgba(0, 163, 255, 0.1); padding: 8px; border-radius: 8px; margin: 10px 0; font-family: 'monospace'; color: var(--success); display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+        .finance-info { background: rgba(0,0,0,0.3); border-radius: 8px; padding: 10px; margin: 10px 0; display: grid; grid-template-columns: 1fr 1fr; font-size: 12px; gap: 5px; }
+
+        .action-btns { display: flex; gap: 8px; margin-top: 12px; }
+        .btn-status { flex: 1; border: none; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 11px; cursor: pointer; text-transform: uppercase; }
+        .btn-comp { background: var(--success); color: #000; }
+        .btn-rech { background: var(--danger); color: #fff; }
+        .btn-wsp { background: #25D366; color: #fff; width: 40px; flex: none; display: flex; align-items: center; justify-content: center; font-size: 16px; border-radius: 8px; border:none; cursor:pointer;}
+
+        /* CONFIGURACIÓN */
+        .config-card { background: var(--card); border: 1px solid rgba(0,163,255,0.2); border-radius: 15px; margin: 0 15px 15px; padding: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        .config-card h3 { color: var(--brand); font-family: 'Orbitron'; font-size: 14px; margin-top: 0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 11px; color: #8b9bb4; font-weight: 700; margin-bottom: 5px; text-transform: uppercase; }
+        .input-group input, .input-group select, .input-group textarea { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.5); color: #fff; font-family: 'Rajdhani'; outline: none; font-size: 14px; transition: 0.3s; }
+        .input-group input:focus, .input-group select:focus, .input-group textarea:focus { border-color: var(--brand); box-shadow: 0 0 10px rgba(0,163,255,0.2); }
+        .input-group input.important { border-color: var(--success); color: var(--success); font-weight: bold; font-size: 16px; text-align: center; }
+        
+        .btn-save { background: var(--brand); color: #000; border: none; padding: 14px; width: 100%; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 14px; text-transform: uppercase; transition: 0.3s; }
+        .btn-save:hover { background: #fff; }
+        .btn-add { background: var(--success); color: #000; border: none; padding: 14px; width: 100%; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 14px; margin-top: 10px; text-transform: uppercase; }
+        .file-upload-label { display: block; background: rgba(0,163,255,0.1); border: 1px dashed var(--brand); color: var(--brand); text-align: center; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .badge-delivery { padding: 3px 8px; border-radius: 6px; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        @keyframes pulseAlert { 0% { opacity: 0.6; } 50% { opacity: 1; transform: scale(1.05); } 100% { opacity: 0.6; } }
+        .ref-duplicada { background: var(--danger); color: #fff; font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 900; letter-spacing: 1px; animation: pulseAlert 1.5s infinite; margin-left: 5px; vertical-align: middle; }
+
+        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--dark); z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 30px; }
+    </style>
+</head>
+<body>
+
+    <audio id="sound-cash" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
+    <div id="login-screen">
+        <img src="https://i.postimg.cc/4HhYjWRc/shark-sin-fondo.png" height="80" style="margin-bottom: 20px;">
+        <h2 style="font-family:'Orbitron'; color:var(--brand); margin-bottom: 30px;">SHARK ADMIN</h2>
+        <input type="password" id="admin-pass" placeholder="Clave de Acceso" style="width:100%; padding:15px; border-radius:10px; border:1px solid var(--brand); background:rgba(255,255,255,0.05); color:#fff; text-align:center; font-size:18px;">
+        <button onclick="login()" style="width:100%; margin-top:15px; padding:15px; border-radius:10px; border:none; background:var(--brand); color:#000; font-weight:800; font-size:16px;">ENTRAR AL PANEL</button>
+    </div>
+
+    <header>
+        <h1>SHARK CONTROL</h1>
+        <button class="btn-toggle-view" id="btn-switch-view" onclick="toggleView()"><i class="fa-solid fa-gear"></i> AJUSTES WEB</button>
+    </header>
+
+    <div id="view-operaciones">
+        <div class="dashboard">
+            <div class="stat-card full"><small><i class="fa-solid fa-money-bill-wave"></i> Ganancia Neta Total</small><div id="stat-ganancia-total" style="color:var(--success)">$ 0.00</div></div>
+            
+            <div class="stat-card full" style="border-left-color: var(--brand);">
+                <small><i class="fa-solid fa-calculator"></i> Calculadora de Vuelto / Cambio</small>
+                <div class="calc-inputs">
+                    <input type="number" id="calc-usd" placeholder="Dólares ($)" onkeyup="calcularCambio('usd')">
+                    <i class="fa-solid fa-arrow-right-arrow-left" style="color:var(--brand); margin-top:10px;"></i>
+                    <input type="number" id="calc-bs" placeholder="Bolívares (Bs)" onkeyup="calcularCambio('bs')">
+                </div>
+            </div>
+
+            <div class="stat-card full" style="border-left-color: var(--accent);">
+                <small><i class="fa-solid fa-trophy"></i> Top Productos Más Vendidos</small>
+                <div class="ranking-list" id="ranking-container"><div style="color:var(--text-muted); text-align:center;">Cargando datos...</div></div>
+            </div>
+
+            <div class="stat-card"><small>Ventas (Comp)</small><div id="stat-ventas">$ 0.00</div></div>
+            <div class="stat-card"><small>Costo Total</small><div id="stat-costo" style="color:var(--danger)">$ 0.00</div></div>
+            <div class="stat-card"><small>Tasa del Día</small><div id="stat-tasa-val">0.00 Bs</div></div>
+            <div class="stat-card"><small>Pendientes</small><div id="stat-pend-val" style="color:var(--warning)">0</div></div>
+        </div>
+
+        <div class="search-bar">
+            <input type="text" id="inp-search" placeholder="🔍 Buscar por ID, Referencia o WhatsApp..." onkeyup="renderPedidos()">
+            <div class="filter-row">
+                <select id="inp-filter-estado" onchange="renderPedidos()" style="flex:2;">
+                    <option value="todos">Mostrar Todos</option>
+                    <option value="Pendiente" selected>Solo Pendientes ⏳</option>
+                    <option value="Completado">Solo Completados ✅</option>
+                </select>
+                <button class="btn-limpiar" onclick="limpiarHistorialViejo()"><i class="fa-solid fa-trash-can"></i> Limpiar</button>
+            </div>
+        </div>
+
+        <div class="section-title"><i class="fa-solid fa-bolt"></i> Bandeja de Operaciones</div>
+        <div id="listado-pedidos"></div>
+    </div>
+
+    <div id="view-configuracion" style="display: none; padding-top: 15px;">
+        <div class="config-card">
+            <h3><i class="fa-solid fa-wallet"></i> Tasa, Pagos y Soporte</h3>
+            <div class="input-group"><label>Tasa del Dólar (Bs)</label><input type="number" id="cfg-tasa" step="0.01" class="important"></div>
+            <div class="input-group"><label>Link de Soporte (URL completa o wa.me/...)</label><input type="text" id="cfg-wsp"></div>
+            <div class="input-group">
+                <label>Datos Pago Móvil (Banco - Cédula - Teléfono)</label>
+                <input type="text" id="cfg-banco" placeholder="Banco (Ej: 0102 BDV)" style="margin-bottom:5px;">
+                <input type="text" id="cfg-cedula" placeholder="Cédula" style="margin-bottom:5px;">
+                <input type="text" id="cfg-telefono" placeholder="Teléfono">
+            </div>
+            <button class="btn-save" onclick="guardarGenerales()"><i class="fa-solid fa-cloud-arrow-up"></i> Guardar Pagos y Tasa</button>
+        </div>
+
+        <div class="config-card">
+            <h3><i class="fa-solid fa-envelope-open-text"></i> Correos Automáticos</h3>
+            <p style="font-size: 11px; color: #8b9bb4; margin-bottom: 15px;">Vincula tu cuenta de EmailJS para enviar un correo de confirmación al marcar un pedido como Completado.</p>
+            <div class="input-group"><label>Correo Remitente (Shark)</label><input type="email" id="cfg-email-shark" placeholder="ventas@recargasshark.com"></div>
+            <div class="input-group"><label>EmailJS: Public Key</label><input type="text" id="cfg-email-pub" placeholder="Tu Public Key"></div>
+            <div class="input-group"><label>EmailJS: Service ID</label><input type="text" id="cfg-email-srv" placeholder="Ej: service_xxxxxx"></div>
+            <div class="input-group"><label>EmailJS: Template ID</label><input type="text" id="cfg-email-tmp" placeholder="Ej: template_xxxxxx"></div>
+            <button class="btn-save" onclick="guardarCorreos()"><i class="fa-solid fa-cloud-arrow-up"></i> Guardar Correos</button>
+        </div>
+
+        <div class="config-card">
+            <h3><i class="fa-solid fa-images"></i> Banners (Promociones)</h3>
+            <div class="input-group"><label>Banner 1</label><input type="text" id="cfg-b1"></div>
+            <div class="input-group"><label>Banner 2</label><input type="text" id="cfg-b2"></div>
+            <div class="input-group"><label>Banner 3</label><input type="text" id="cfg-b3"></div>
+            <button class="btn-save" onclick="guardarBanners()"><i class="fa-solid fa-cloud-arrow-up"></i> Guardar Banners</button>
+        </div>
+
+        <div class="config-card">
+            <h3><i class="fa-solid fa-globe"></i> Redes Sociales</h3>
+            <div class="input-group"><label>Instagram URL</label><input type="text" id="cfg-ig"></div>
+            <div class="input-group"><label>Facebook URL</label><input type="text" id="cfg-fb"></div>
+            <div class="input-group"><label>TikTok URL</label><input type="text" id="cfg-tk"></div>
+            <button class="btn-save" onclick="guardarRedes()"><i class="fa-solid fa-cloud-arrow-up"></i> Guardar Redes</button>
+        </div>
+
+        <div class="config-card">
+            <h3><i class="fa-solid fa-gamepad"></i> Gestor de Productos</h3>
+            <div class="input-group"><label>Seleccionar Producto a Editar</label><select id="cfg-select-prod" onchange="cargarProductoFormulario()"></select></div>
+            <div class="input-group"><label>Nombre del Producto</label><input type="text" id="cfg-prod-nombre"></div>
+            <div class="input-group">
+                <label>Tipo de Formulario (Qué datos pedirá la web)</label>
+                <select id="cfg-prod-tipo">
+                    <option value="id">Solo pedir ID de Jugador</option>
+                    <option value="interna">Pedir Correo y Contraseña</option>
+                    <option value="directa">Sin Formulario (Entrega Directa)</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label style="color:var(--brand)">Método de Entrega al Cliente (Guía Visual)</label>
+                <select id="cfg-prod-entrega">
+                    <option value="id">🎮 Recarga Directa a la Cuenta/ID</option>
+                    <option value="wsp">📲 Enviar datos por WhatsApp</option>
+                    <option value="correo">📧 Enviar datos por Correo</option>
+                </select>
+            </div>
+            <div class="input-group"><label>Paquetes y Precios (Ej: 100 Diamantes=1.10)</label><textarea id="cfg-prod-precios" rows="4"></textarea></div>
+            <div class="input-group">
+                <label>Imagen del Producto</label>
+                <label class="file-upload-label" for="cfg-prod-file"><i class="fa-solid fa-image"></i> Subir Foto Local</label>
+                <input type="file" id="cfg-prod-file" accept="image/*" style="display:none;" onchange="procesarImagenLocal(this)">
+                <input type="text" id="cfg-prod-img" placeholder="URL de la imagen" style="margin-top:8px;">
+            </div>
+            <button class="btn-save" onclick="guardarProductoSeleccionado()"><i class="fa-solid fa-floppy-disk"></i> Guardar Cambios del Producto</button>
+            <button class="btn-add" onclick="prepararNuevoProducto()"><i class="fa-solid fa-plus"></i> Crear Producto Nuevo</button>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyB0Nv_MJeXvdU2xAcZcnQdSqTju6MSRM8w",
+            authDomain: "recargasvenezuela-eb5ca.firebaseapp.com",
+            databaseURL: "https://recargasvenezuela-eb5ca-default-rtdb.firebaseio.com", 
+            projectId: "recargasvenezuela-eb5ca",
+            storageBucket: "recargasvenezuela-eb5ca.firebasestorage.app",
+            messagingSenderId: "318551389820",
+            appId: "1:318551389820:web:65a9ed7cd5f25d6756bbf9"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        let pedidos = [];
+        let configGlobal = {};
+        let ultimosPendientes = -1;
+
+        function login() {
+            if(document.getElementById('admin-pass').value === "1234") {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('sound-cash').volume = 0.5;
+                iniciarEscuchadores();
+            } else { alert("Acceso Denegado"); }
+        }
+
+        function iniciarEscuchadores() {
+            db.ref('config').on('value', (snap) => {
+                configGlobal = snap.val() || {};
+                if(!configGlobal.redes) configGlobal.redes = {instagram:"", facebook:"", tiktok:""};
+                if(!configGlobal.banners) configGlobal.banners = ["","",""];
+                if(!configGlobal.datosPago) configGlobal.datosPago = {whatsapp:"", banco:"", cedula:"", telefono:""};
+                
+                // Inicializar objeto de correos si no existe
+                if(!configGlobal.email) configGlobal.email = { shark: "", emailjs_pub: "", emailjs_srv: "", emailjs_tmp: "" };
+
+                if(configGlobal.tasa) document.getElementById('stat-tasa-val').innerText = configGlobal.tasa.toFixed(2) + " Bs";
+                llenarFormulariosConfig();
+                renderPedidos();
+            });
+
+            db.ref('pedidos').on('value', (snap) => {
+                pedidos = snap.val() || [];
+                
+                let pendientesActuales = pedidos.filter(p => p.estado === "Pendiente").length;
+                if (ultimosPendientes !== -1 && pendientesActuales > ultimosPendientes) {
+                    let audio = document.getElementById('sound-cash');
+                    audio.play().catch(e => console.log("Navegador bloqueó el audio", e));
+                }
+                ultimosPendientes = pendientesActuales;
+
+                calcularEstadisticas();
+                actualizarRanking();
+                renderPedidos();
+            });
+        }
+
+        function calcularCambio(tipo) {
+            let tasa = configGlobal.tasa || 1;
+            if(tipo === 'usd') {
+                let usd = parseFloat(document.getElementById('calc-usd').value) || 0;
+                document.getElementById('calc-bs').value = (usd * tasa).toFixed(2);
+            } else {
+                let bs = parseFloat(document.getElementById('calc-bs').value) || 0;
+                document.getElementById('calc-usd').value = (bs / tasa).toFixed(2);
+            }
+        }
+
+        function actualizarRanking() {
+            let conteo = {};
+            pedidos.filter(p => p.estado === "Completado").forEach(p => { conteo[p.juego] = (conteo[p.juego] || 0) + 1; });
+            let arrayRanking = Object.keys(conteo).map(k => ({ nombre: k, cantidad: conteo[k] }));
+            arrayRanking.sort((a, b) => b.cantidad - a.cantidad);
+            
+            let rankHtml = ""; let medallas = ['🥇', '🥈', '🥉'];
+            for(let i=0; i < Math.min(3, arrayRanking.length); i++) { rankHtml += `<div><span>${medallas[i]} ${arrayRanking[i].nombre}</span> <b style="color:var(--brand)">${arrayRanking[i].cantidad} ventas</b></div>`; }
+            if(rankHtml === "") rankHtml = '<div style="color:#8b9bb4; text-align:center;">Aún no hay ventas completadas.</div>';
+            document.getElementById('ranking-container').innerHTML = rankHtml;
+        }
+
+        function toggleView() {
+            const vOps = document.getElementById('view-operaciones');
+            const vCfg = document.getElementById('view-configuracion');
+            const btn = document.getElementById('btn-switch-view');
+            if(vOps.style.display === 'none') {
+                vOps.style.display = 'block'; vCfg.style.display = 'none';
+                btn.innerHTML = '<i class="fa-solid fa-gear"></i> AJUSTES WEB';
+                btn.style.background = 'rgba(0,163,255,0.2)'; btn.style.borderColor = 'var(--brand)';
+            } else {
+                vOps.style.display = 'none'; vCfg.style.display = 'block';
+                btn.innerHTML = '<i class="fa-solid fa-arrow-left"></i> VOLVER A PEDIDOS';
+                btn.style.background = 'var(--brand)'; btn.style.color = '#000';
+            }
+        }
+
+        function calcularEstadisticas() {
+            let totalVentaUsd = 0; let totalCostoUsd = 0;
+            let completados = pedidos.filter(p => p.estado === "Completado");
+            completados.forEach(p => {
+                let venta = parseFloat(p.usd) || 0; let costo = venta * 0.85; 
+                totalVentaUsd += venta; totalCostoUsd += costo;
+            });
+            let ganancia = totalVentaUsd - totalCostoUsd;
+            document.getElementById('stat-ganancia-total').innerText = `$ ${ganancia.toFixed(2)}`;
+            document.getElementById('stat-ventas').innerText = `$ ${totalVentaUsd.toFixed(2)}`;
+            document.getElementById('stat-costo').innerText = `$ ${totalCostoUsd.toFixed(2)}`;
+            document.getElementById('stat-pend-val').innerText = pedidos.filter(p => p.estado === "Pendiente").length;
+        }
+
+        function renderPedidos() {
+            const cont = document.getElementById('listado-pedidos');
+            const search = document.getElementById('inp-search').value.toLowerCase();
+            const filterEstado = document.getElementById('inp-filter-estado').value;
+            cont.innerHTML = "";
+            
+            pedidos.forEach((p) => {
+                if (filterEstado !== "todos" && p.estado !== filterEstado) return;
+                if (!p.datosIngreso.toLowerCase().includes(search) && !p.referencia.includes(search) && !p.wsp.includes(search)) return;
+                    
+                let venta = parseFloat(p.usd) || 0;
+                let costo = (venta * 0.85).toFixed(2);
+                let utilidad = (venta - costo).toFixed(2);
+
+                let prodConfig = configGlobal.productos ? configGlobal.productos.find(pr => pr.n === p.juego) : null;
+                let metodoEntrega = prodConfig && prodConfig.ent ? prodConfig.ent : 'id';
+                
+                let badgeHTML = '';
+                if(metodoEntrega === 'wsp') badgeHTML = '<span class="badge-delivery" style="background:rgba(37, 211, 102, 0.2); color:#25D366; border:1px solid #25D366;"><i class="fa-brands fa-whatsapp"></i> WSP</span>';
+                else if(metodoEntrega === 'correo') badgeHTML = '<span class="badge-delivery" style="background:rgba(255, 102, 0, 0.2); color:var(--accent); border:1px solid var(--accent);"><i class="fa-solid fa-envelope"></i> CORREO</span>';
+                else badgeHTML = '<span class="badge-delivery" style="background:rgba(0, 163, 255, 0.2); color:var(--brand); border:1px solid var(--brand);"><i class="fa-solid fa-gamepad"></i> ID</span>';
+
+                let repeticiones = pedidos.filter(x => x.referencia === p.referencia && (x.estado === 'Completado' || x.estado === 'Pendiente')).length;
+                let alertaRef = repeticiones > 1 ? '<span class="ref-duplicada"><i class="fa-solid fa-triangle-exclamation"></i> DUPLICADA</span>' : '';
+
+                cont.innerHTML += `
+                    <div class="order-card ${p.estado}">
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; margin-bottom: 5px;">
+                            <span class="ticket-id">#${p.id} ${badgeHTML}</span>
+                            <span style="color:#8b9bb4">${p.estado.toUpperCase()}</span>
+                        </div>
+                        <div class="order-info">
+                            <b>${p.juego}</b>
+                            <span style="color:var(--brand)">${p.paquete}</span>
+                            <div class="order-user-id"><code>${p.datosIngreso}</code><button class="btn-copy-id" onclick="copiar('${p.datosIngreso}')" style="background:none; border:none; color:var(--brand); cursor:pointer;"><i class="fa-solid fa-copy"></i></button></div>
+                            <div class="finance-info">
+                                <div>VENTA: <b style="color:#fff">$${venta}</b></div>
+                                <div>COSTO: <b style="color:var(--danger)">$${costo}</b></div>
+                                <div style="grid-column: span 2; border-top:1px solid #444; padding-top:5px; margin-top:5px;">GANANCIA: <b style="color:var(--success)">$${utilidad}</b></div>
+                            </div>
+                            <div style="font-size:12px; color:#8b9bb4">Ref: <b>${p.referencia}</b> ${alertaRef} | Pago: <b>${p.bs} Bs</b></div>
+                        </div>
+                        <div class="action-btns">
+                            <button class="btn-wsp" onclick="window.open('https://wa.me/${p.wsp.replace(/[^0-9]/g,'')}')"><i class="fa-brands fa-whatsapp"></i></button>
+                            ${p.estado === 'Pendiente' ? `
+                                <button class="btn-status btn-rech" onclick="cambiarEstado(${p.id}, 'Rechazado')">Rechazar</button>
+                                <button class="btn-status btn-comp" onclick="cambiarEstado(${p.id}, 'Completado')">Despachar</button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function limpiarHistorialViejo() {
+            if(confirm("⚠️ ¿Seguro de borrar los pedidos Completados y Rechazados?")) {
+                let soloPendientes = pedidos.filter(p => p.estado === "Pendiente");
+                db.ref('pedidos').set(soloPendientes);
+                alert("Historial limpiado con éxito. 🧹");
+            }
+        }
+
+        // --- SISTEMA DE CORREOS ---
+        function enviarCorreoConfirmacion(pedido) {
+            if(!configGlobal.email || !configGlobal.email.emailjs_pub || !configGlobal.email.emailjs_srv || !configGlobal.email.emailjs_tmp) {
+                console.log("EmailJS no está configurado. Saltando envío de correo.");
+                return;
+            }
+
+            if(typeof emailjs === 'undefined') {
+                console.error("Librería EmailJS no cargada.");
+                return;
+            }
+
+            emailjs.init(configGlobal.email.emailjs_pub);
+            
+            let templateParams = {
+                to_email: pedido.email, // El correo que dejó el cliente al comprar
+                from_name: "Recargas Shark",
+                reply_to: configGlobal.email.shark || "ventas@recargasshark.com",
+                ticket_id: pedido.id,
+                juego: pedido.juego,
+                paquete: pedido.paquete,
+                id_jugador: pedido.datosIngreso
+            };
+
+            emailjs.send(configGlobal.email.emailjs_srv, configGlobal.email.emailjs_tmp, templateParams)
+                .then(function(response) {
+                   console.log("¡Correo enviado al cliente exitosamente!");
+                }, function(error) {
+                   console.error("EmailJS Error:", error);
+                   alert("Hubo un error al enviar el correo automático. Revisa la consola.");
+                });
+        }
+
+        function cambiarEstado(id, nuevo) {
+            let index = pedidos.findIndex(x => x.id === id);
+            if(index !== -1) {
+                let estadoAnterior = pedidos[index].estado;
+                pedidos[index].estado = nuevo;
+                db.ref('pedidos').set(pedidos);
+                
+                if(nuevo === "Completado") {
+                    
+                    // Dispara el correo si antes no estaba completado
+                    if (estadoAnterior !== "Completado") {
+                        enviarCorreoConfirmacion(pedidos[index]);
+                    }
+
+                    db.ref('live_notif').set({ id_real: pedidos[index].datosIngreso, paquete: pedidos[index].paquete, juego: pedidos[index].juego, monto: pedidos[index].bs, time: Date.now() });
+                    if(confirm("¿Enviar WhatsApp al cliente avisando del despacho?")) {
+                        let msj = encodeURIComponent(`🦈 *RECARGAS SHARK - ORDEN COMPLETADA* ✅\n\nTu pedido #${pedidos[index].id} de *${pedidos[index].juego}* (${pedidos[index].paquete}) ha sido procesado con éxito.\n\n¡Gracias por preferirnos! 🔥`);
+                        window.open(`https://wa.me/${pedidos[index].wsp.replace(/[^0-9]/g,'')}?text=${msj}`, '_blank');
+                    }
+                }
+            }
+        }
+
+        // FUNCIONES DE GUARDADO
+        function llenarFormulariosConfig() {
+            document.getElementById('cfg-tasa').value = configGlobal.tasa || 0;
+            document.getElementById('cfg-wsp').value = configGlobal.datosPago.whatsapp || "";
+            document.getElementById('cfg-banco').value = configGlobal.datosPago.banco || "";
+            document.getElementById('cfg-cedula').value = configGlobal.datosPago.cedula || "";
+            document.getElementById('cfg-telefono').value = configGlobal.datosPago.telefono || "";
+            
+            // Llenar datos de correo
+            document.getElementById('cfg-email-shark').value = configGlobal.email.shark || "";
+            document.getElementById('cfg-email-pub').value = configGlobal.email.emailjs_pub || "";
+            document.getElementById('cfg-email-srv').value = configGlobal.email.emailjs_srv || "";
+            document.getElementById('cfg-email-tmp').value = configGlobal.email.emailjs_tmp || "";
+
+            document.getElementById('cfg-ig').value = configGlobal.redes.instagram || "";
+            document.getElementById('cfg-fb').value = configGlobal.redes.facebook || "";
+            document.getElementById('cfg-tk').value = configGlobal.redes.tiktok || "";
+            document.getElementById('cfg-b1').value = configGlobal.banners[0] || "";
+            document.getElementById('cfg-b2').value = configGlobal.banners[1] || "";
+            document.getElementById('cfg-b3').value = configGlobal.banners[2] || "";
+
+            const select = document.getElementById('cfg-select-prod');
+            select.innerHTML = '<option value="" disabled selected>-- Elige un producto para editar --</option>';
+            if(configGlobal.productos) { configGlobal.productos.forEach(p => { select.innerHTML += `<option value="${p.id}">${p.n}</option>`; }); }
+        }
+
+        function guardarGenerales() { configGlobal.tasa = parseFloat(document.getElementById('cfg-tasa').value); configGlobal.datosPago.whatsapp = document.getElementById('cfg-wsp').value; configGlobal.datosPago.banco = document.getElementById('cfg-banco').value; configGlobal.datosPago.cedula = document.getElementById('cfg-cedula').value; configGlobal.datosPago.telefono = document.getElementById('cfg-telefono').value; db.ref('config').set(configGlobal); alert("✅ Guardado."); }
+        function guardarBanners() { configGlobal.banners = [ document.getElementById('cfg-b1').value, document.getElementById('cfg-b2').value, document.getElementById('cfg-b3').value ]; db.ref('config').set(configGlobal); alert("✅ Guardado."); }
+        function guardarRedes() { configGlobal.redes = { instagram: document.getElementById('cfg-ig').value, facebook: document.getElementById('cfg-fb').value, tiktok: document.getElementById('cfg-tk').value }; db.ref('config').set(configGlobal); alert("✅ Guardado."); }
+
+        // Función nueva para guardar configuración de EmailJS
+        function guardarCorreos() {
+            configGlobal.email = {
+                shark: document.getElementById('cfg-email-shark').value.trim(),
+                emailjs_pub: document.getElementById('cfg-email-pub').value.trim(),
+                emailjs_srv: document.getElementById('cfg-email-srv').value.trim(),
+                emailjs_tmp: document.getElementById('cfg-email-tmp').value.trim()
+            };
+            db.ref('config').set(configGlobal); 
+            alert("✅ Configuración de Correos Guardada.");
+        }
+
+        function cargarProductoFormulario() {
+            const id = document.getElementById('cfg-select-prod').value;
+            if(!id || !configGlobal.productos) return;
+            const prod = configGlobal.productos.find(x => x.id == id);
+            if(prod) {
+                document.getElementById('cfg-prod-nombre').value = prod.n || "";
+                document.getElementById('cfg-prod-tipo').value = prod.t || "id";
+                document.getElementById('cfg-prod-entrega').value = prod.ent || "id";
+                document.getElementById('cfg-prod-precios').value = prod.p || "";
+                document.getElementById('cfg-prod-img').value = prod.img || "";
+            }
+        }
+        function prepararNuevoProducto() { document.getElementById('cfg-select-prod').value = ""; document.getElementById('cfg-prod-nombre').value = ""; document.getElementById('cfg-prod-tipo').value = "id"; document.getElementById('cfg-prod-entrega').value = "id"; document.getElementById('cfg-prod-precios').value = ""; document.getElementById('cfg-prod-img').value = ""; document.getElementById('cfg-prod-nombre').focus(); }
+        
+        function guardarProductoSeleccionado() {
+            const id = document.getElementById('cfg-select-prod').value;
+            const nombre = document.getElementById('cfg-prod-nombre').value.trim();
+            const tipo = document.getElementById('cfg-prod-tipo').value;
+            const entrega = document.getElementById('cfg-prod-entrega').value;
+            const precios = document.getElementById('cfg-prod-precios').value.trim();
+            const img = document.getElementById('cfg-prod-img').value.trim();
+
+            if(!nombre || !precios) { alert("⚠️ Nombre y precio obligatorios."); return; }
+            if(!configGlobal.productos) configGlobal.productos = [];
+
+            if(id) {
+                let index = configGlobal.productos.findIndex(x => x.id == id);
+                if(index !== -1) { configGlobal.productos[index].n = nombre; configGlobal.productos[index].t = tipo; configGlobal.productos[index].ent = entrega; configGlobal.productos[index].p = precios; configGlobal.productos[index].img = img; }
+            } else {
+                configGlobal.productos.push({ id: Date.now(), n: nombre, t: tipo, ent: entrega, p: precios, img: img || "https://img.icons8.com/color/512/plus.png", c: "cat1", o: 99 });
+            }
+            db.ref('config/productos').set(configGlobal.productos); alert("✅ Producto guardado."); llenarFormulariosConfig();
+        }
+
+        function procesarImagenLocal(input) {
+            const file = input.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); canvas.width = 250; canvas.height = 250; ctx.drawImage(img, 0, 0, 250, 250);
+                    document.getElementById('cfg-prod-img').value = canvas.toDataURL('image/jpeg', 0.8); alert("📸 Foto procesada.");
+                }; img.src = e.target.result;
+            }; reader.readAsDataURL(file);
+        }
+
+        function copiar(texto) { navigator.clipboard.writeText(texto); alert("ID Copiado: " + texto); }
+    </script>
+</body>
+</html>
